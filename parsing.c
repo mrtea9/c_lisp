@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mpc.h"
+
 /* If we are compiling on Windows compile these functions */
 #ifdef _WIN32
 #include <string.h>
@@ -28,6 +30,22 @@ void add_history(char* unused) {}
 #endif
 
 int main(int argc, char** argv) {
+	/* Create some Parsers */
+	mpc_parser_t* Number = mpc_new("number");
+	mpc_parser_t* Operator = mpc_new("operator");
+	mpc_parser_t* Expr = mpc_new("expr");
+	mpc_parser_t* Tea = mpc_new("tea");
+
+	/* Define them with the following Language */
+	mpca_lang(MPCA_LANG_DEFAULT,
+		"                                                       \
+			number   : /-?[0-9]+/ ;                             \
+			operator : '+' | '-' | '*' | '/' ;                  \
+			expr     :  <number> | '(' <operator> <expr>+ ')' ; \
+			tea      :  /^/ <operator> <expr>+ /$/ ;            \
+		",
+		Number, Operator, Expr, Tea);
+
 
 	/* Print Version and Exit Information */
 	puts("Tea Version 0.0.0.0.1");
@@ -44,6 +62,8 @@ int main(int argc, char** argv) {
 		free(input); // Free retrieved input
 
 	}
+
+	mpc_cleanup(4, Number, Operator, Expr, Tea);
 
 	return 0;
 }
