@@ -79,8 +79,8 @@ lval* lval_sym(char* s) {
 	return v;
 }
 
-lval* lval_sexpr(char* s) {
-	lval* v = malloc(sizoef(lval));
+lval* lval_sexpr(void) {
+	lval* v = malloc(sizeof(lval));
 	v->type = LVAL_SEXPR;
 	v->count = 0;
 	v->cell = NULL;
@@ -157,7 +157,7 @@ void lval_expr_print(lval* v, char open, char close) {
 }
 
 void lval_print(lval* v) {
-	switch (v.type) {
+	switch (v->type) {
 		case LVAL_NUM:
 			printf("%.2f", v->num);
 			break;
@@ -231,24 +231,24 @@ int countLeaves(mpc_ast_t* t) {
 	return leaf_count;
 }
 
-lval eval_op(lval x, char* op, lval y) {
+lval* eval_op(lval* x, char* op, lval* y) {
 
-	if (x.type == LVAL_ERR) return x;
-	if (y.type == LVAL_ERR) return y;
+	if (x->type == LVAL_ERR) return x;
+	if (y->type == LVAL_ERR) return y;
 
-	if (strcmp(op, "+") == 0) return lval_num(x.num + y.num);
-	if (strcmp(op, "-") == 0) return lval_num(x.num - y.num);
-	if (strcmp(op, "*") == 0) return lval_num(x.num * y.num);
-	if (strcmp(op, "/") == 0) return y.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(x.num / y.num);
-	if (strcmp(op, "%") == 0) return lval_num(((long)x.num % (long)y.num));
-	if (strcmp(op, "^") == 0) return lval_num(power(x.num, y.num));
-	if (strcmp(op, "min") == 0) return (x.num < y.num) ? x : y;
-	if (strcmp(op, "max") == 0) return (x.num > y.num) ? x : y;
+	if (strcmp(op, "+") == 0) return lval_num(x->num + y->num);
+	if (strcmp(op, "-") == 0) return lval_num(x->num - y->num);
+	if (strcmp(op, "*") == 0) return lval_num(x->num * y->num);
+	if (strcmp(op, "/") == 0) return y->num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(x->num / y->num);
+	if (strcmp(op, "%") == 0) return lval_num(((long)x->num % (long)y->num));
+	if (strcmp(op, "^") == 0) return lval_num(power(x->num, y->num));
+	if (strcmp(op, "min") == 0) return (x->num < y->num) ? x : y;
+	if (strcmp(op, "max") == 0) return (x->num > y->num) ? x : y;
 
-	return lval_err(LERR_BAD_OP);
+	return lval_err("LERR_BAD_OP");
 }
 
-lval eval(mpc_ast_t* t) {
+lval* eval(mpc_ast_t* t) {
 
 	mpc_ast_print(t);
 
@@ -256,11 +256,11 @@ lval eval(mpc_ast_t* t) {
 	if (strstr(t->tag, "number")) {
 		errno = 0;
 		double x = atof(t->contents);
-		return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
+		return errno != ERANGE ? lval_num(x) : lval_err("LERR_BAD_NUM");
 	}
 
 	char* op = t->children[1]->contents;
-	lval x = eval(t->children[2]);
+	lval* x = eval(t->children[2]);
 
 	int i = 3;
 	while (strstr(t->children[i]->tag, "expr")) {
@@ -310,7 +310,7 @@ int main(int argc, char** argv) {
 		printf("leaves = %i\n", countLeaves(r.output));
 		printf("branches = %i\n", countBranches(r.output));
 		printf("children num = %i\n", max_children(r.output));
-		lval_del(x)
+		lval_del(x);
 		mpc_ast_delete(r.output);
 
 		free(input); // Free retrieved input
