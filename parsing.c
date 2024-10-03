@@ -25,7 +25,8 @@ enum {
 	LVAL_ERR,
 	LVAL_NUM,
 	LVAL_SYM,
-	LVAL_SEXPR
+	LVAL_SEXPR,
+	LVAL_QEXPR
 };
 
 typedef struct lval {
@@ -125,6 +126,14 @@ lval* lval_sexpr(void) {
 	return v;
 }
 
+lval* lval_qexpr(void) {
+	lval* v = malloc(sizeof(lval));
+	v->type = LVAL_QEXPR;
+	v->count = 0;
+	v->cell = NULL;
+	return v;
+}
+
 void lval_del(lval* v) {
 	
 	switch (v->type) {
@@ -138,6 +147,7 @@ void lval_del(lval* v) {
 			free(v->sym);
 			break;
 
+		case LVAL_QEXPR:
 		case LVAL_SEXPR: {
 			for (int i = 0; i < v->count; i++) {
 				lval_del(v->cell[i]);
@@ -199,6 +209,9 @@ void lval_print(lval* v) {
 		break;
 	case LVAL_SEXPR:
 		lval_expr_print(v, '(', ')');
+		break;
+	case LVAL_QEXPR:
+		lval_expr_print(v, '{', '}');
 		break;
 	}
 }
@@ -282,7 +295,6 @@ lval* lval_eval(lval* v) {
 
 	if (v->type == LVAL_SEXPR) return lval_eval_sexpr(v);
 
-
 	return v;
 }
 
@@ -300,10 +312,13 @@ lval* lval_read(mpc_ast_t* t) {
 	lval* x = NULL;
 	if (strcmp(t->tag, ">") == 0) x = lval_sexpr();
 	if (strstr(t->tag, "sexpr")) x = lval_sexpr();
+	if (strstr(t->tag, "qexpr")) x = lval_qexpr();
 
 	for (int i = 0; i < t->children_num; i++) {
 		if (strcmp(t->children[i]->contents, "(") == 0) continue;
 		if (strcmp(t->children[i]->contents, ")") == 0) continue;
+		if (strcmp(t->children[i]->contents, "{") == 0) continue;
+		if (strcmp(t->children[i]->contents, "}") == 0) continue;
 		if (strcmp(t->children[i]->tag, "regex") == 0) continue;
 
 		x = lval_add(x, lval_read(t->children[i]));
@@ -316,9 +331,10 @@ int main(int argc, char** argv) {
 	/* Create some Parsers */
 	mpc_parser_t* Number = mpc_new("number");
 	mpc_parser_t* Symbol = mpc_new("symbol");
-	mpc_parser_t* Sexpr = mpc_new("sexpr");
-	mpc_parser_t* Expr = mpc_new("expr");
-	mpc_parser_t* Tea = mpc_new("tea");
+	mpc_parser_t* Sexpr  = mpc_new("sexpr");
+	mpc_parser_t* Qexpr  = mpc_new("qexpr");
+	mpc_parser_t* Expr   = mpc_new("expr");
+	mpc_parser_t* Tea    = mpc_new("tea");
 
 	/* Define them with the following Language */
 	mpca_lang(MPCA_LANG_DEFAULT,
@@ -326,10 +342,11 @@ int main(int argc, char** argv) {
 			number   : /-?[0-9]+/ ;                                                \
 			symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\";      \
             sexpr    : '(' <expr>* ')' ;                                           \
-			expr     :  <number> | <symbol> | <sexpr> ;                            \
+            qexpr    : '{' <expr>* '}' ;                                           \
+			expr     :  <number> | <symbol> | <sexpr> | <qexpr> ;                  \
 			tea      :  /^/ <expr>* /$/ ;                                          \
 		",
-		Number, Symbol, Sexpr, Expr, Tea);
+		Number, Symbol, Sexpr, Qexpr, Expr, Tea);
 
 
 	/* Print Version and Exit Information */
@@ -365,7 +382,7 @@ int main(int argc, char** argv) {
 
 	}
 
-	mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Tea);
+	mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Tea);
 
 	return 0;
 }
