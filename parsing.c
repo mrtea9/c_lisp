@@ -43,11 +43,11 @@ enum {
 
 typedef struct {
 	int type;
-	long num;
+	double num;
 	int err;
 } lval;
 
-lval lval_num(long x) {
+lval lval_num(double x) {
 	lval v;
 	v.type = LVAL_NUM;
 	v.num = x;
@@ -64,7 +64,7 @@ lval lval_err(int x) {
 void lval_print(lval v) {
 	switch (v.type) {
 	case LVAL_NUM:
-		printf("%li", v.num);
+		printf("%.2f", v.num);
 		break;
 	case LVAL_ERR:
 		if (v.err == LERR_DIV_ZERO) printf("Error: Division By Zero!");
@@ -79,8 +79,8 @@ void lval_println(lval v) {
 	putchar('\n');
 }
 
-long power(long x, long y) {
-	long result = x;
+long power(double x, double y) {
+	double result = x;
 	for (int i = 1; i < y; i++) {
 		result = result * x;
 	}
@@ -141,7 +141,7 @@ lval eval_op(lval x, char* op, lval y) {
 	if (strcmp(op, "-") == 0) return lval_num(x.num - y.num);
 	if (strcmp(op, "*") == 0) return lval_num(x.num * y.num);
 	if (strcmp(op, "/") == 0) return y.num == 0 ? lval_err(LERR_DIV_ZERO) : lval_num(x.num / y.num);
-	if (strcmp(op, "%") == 0) return lval_num(x.num % y.num);
+	if (strcmp(op, "%") == 0) return lval_num(((long)x.num % (long)y.num));
 	if (strcmp(op, "^") == 0) return lval_num(power(x.num, y.num));
 	if (strcmp(op, "min") == 0) return (x.num < y.num) ? x : y;
 	if (strcmp(op, "max") == 0) return (x.num > y.num) ? x : y;
@@ -151,11 +151,12 @@ lval eval_op(lval x, char* op, lval y) {
 
 lval eval(mpc_ast_t* t) {
 
+	mpc_ast_print(t);
 
 	/* If tagged as number return it directly. */
 	if (strstr(t->tag, "number")) {
 		errno = 0;
-		long x = strtol(t->contents, NULL, 10);
+		double x = atof(t->contents);
 		return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
 	}
 
@@ -181,7 +182,7 @@ int main(int argc, char** argv) {
 	/* Define them with the following Language */
 	mpca_lang(MPCA_LANG_DEFAULT,
 		"                                                                          \
-			number   : /-?[0-9]+/ ;                                                \
+			number   : /-?[0-9]+.?[0-9]*/ ;                                                \
 			operator : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\";      \
 			expr     :  <number> | '(' <operator> <expr>+ ')' ;                    \
 			tea      :  /^/ <operator> <expr>+ /$/ ;                               \
