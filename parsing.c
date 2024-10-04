@@ -234,6 +234,16 @@ void lval_println(lval* v) {
 	putchar('\n');
 }
 
+lval* builtin_len(lval* a) {
+	LASSERT(a, a->count == 1, "Function 'len' passed too many arguments!");
+	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'len' passed incorrect type!");
+
+	lval* x = lval_num(a->cell[0]->count);
+
+	lval_del(a);
+	return x;
+}
+
 lval* builtin_head(lval* a) {
 
 	LASSERT(a, a->count == 1, "Function 'head' passed to many arguments");
@@ -253,8 +263,8 @@ lval* builtin_tail(lval* a) {
 	LASSERT(a, a->cell[0]->count != 0, "Function 'tail' passed {}");
 
 	lval* v = lval_take(a, 0);
-
 	lval_del(lval_pop(v, 0));
+
 	return v;
 }
 
@@ -288,14 +298,34 @@ lval* builtin_join(lval* a) {
 	return x;
 }
 
-lval* builtin_len(lval* a) {
-	LASSERT(a, a->count == 1, "Function 'len' passed too many arguments!");
-	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'len' passed incorrect type!");
+lval* builtin_init(lval* a) {
 
-	lval* x = lval_num(a->cell[0]->count);
+	LASSERT(a, a->count == 1, "Function 'init' passed to many arguments");
+	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'init' passed incorrect types!");
+	LASSERT(a, a->cell[0]->count != 0, "Function 'init' passed {}");
 
-	lval_del(a);
-	return x;
+	lval* v = lval_take(a, 0);
+	lval_del(lval_pop(v, v->count - 1));
+
+	return v;
+}
+
+lval* builtin_cons(lval* a) {
+	LASSERT(a, a->count == 2, "Function 'cons' passed to many arguments");
+	LASSERT(a, a->cell[0]->type == LVAL_NUM, "Function 'cons' passed incorrect value types!");
+	LASSERT(a, a->cell[0]->count != 0, "Function 'cons' passed value");
+	LASSERT(a, a->cell[1]->type == LVAL_QEXPR, "Function 'cons' passed incorrect types!");
+	LASSERT(a, a->cell[1]->count != 0, "Function 'cons' passed {}");
+
+	lval* result = lval_qexpr();
+	lval* v = lval_pop(a, 0);
+
+	a = lval_pop(a, 0);
+
+	result = lval_add(result, v);
+	result = lval_join(result, a);
+
+	return result;
 }
 
 lval* builtin_op(lval* a, char* op) {
@@ -347,6 +377,8 @@ lval* builtin(lval* a, char* func) {
 	if (strcmp("join", func) == 0) return builtin_join(a);
 	if (strcmp("eval", func) == 0) return builtin_eval(a);
 	if (strcmp("len", func) == 0) return builtin_len(a);
+	if (strcmp("cons", func) == 0) return builtin_cons(a);
+	if (strcmp("init", func) == 0) return builtin_init(a);
 	if (strstr("+-/*%^minmax", func)) return builtin_op(a, func);
 
 	lval_del(a);
@@ -429,7 +461,8 @@ int main(int argc, char** argv) {
 		"                                                                          \
 			number   : /-?[0-9]+/ ;                                                \
 			symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\"       \
-		             | \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \"len\" ;      \
+		             | \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\"        \
+		             | \"len\"  | \"cons\" | \"init\" ;                            \
             sexpr    : '(' <expr>* ')' ;                                           \
             qexpr    : '{' <expr>* '}' ;                                           \
 			expr     :  <number> | <symbol> | <sexpr> | <qexpr> ;                  \
