@@ -53,6 +53,7 @@ typedef struct lval {
 	char* err;
 	char* sym;
 	lbuiltin fun;
+	char* fun_name;
 
 	int count;
 	struct lval** cell;
@@ -174,10 +175,12 @@ lval* lval_sym(char* s) {
 	return v;
 }
 
-lval* lval_fun(lbuiltin func) {
+lval* lval_fun(lbuiltin func, char* func_name) {
 	lval* v = malloc(sizeof(lval));
 	v->type = LVAL_FUN;
 	v->fun = func;
+	v->fun_name = malloc(strlen(func_name) + 1);
+	strcpy(v->fun_name, func_name);
 	return v;
 }
 
@@ -206,6 +209,7 @@ lval* lval_copy(lval* v) {
 
 	case LVAL_FUN:
 		x->fun = v->fun;
+		x->fun_name = v->fun_name;
 		break;
 	case LVAL_NUM:
 		x->num = v->num;
@@ -364,7 +368,7 @@ void lval_print(lval* v) {
 			printf("%s", v->sym);
 			break;
 		case LVAL_FUN:
-			printf("<function>");
+			printf("<function> %s", v->fun_name);
 			break;
 		case LVAL_SEXPR:
 			lval_expr_print(v, '(', ')');
@@ -564,13 +568,15 @@ lval* builtin_def(lenv* e, lval* a) {
 	return lval_sexpr();
 }
 
-void builtin_exit(lenv* e, lval* a) {
-	printf("exit");
+lval* builtin_exit(lenv* e, lval* a) {
+	printf("este exit");
+
+	return a;
 }
 
 void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {
 	lval* k = lval_sym(name);
-	lval* v = lval_fun(func);
+	lval* v = lval_fun(func, name);
 	lenv_put(e, k, v);
 	lval_del(k);
 	lval_del(v);
