@@ -550,12 +550,16 @@ lval* builtin_max(lenv* e, lval* a) {
 }
 
 lval* builtin_def(lenv* e, lval* a) {
-	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'def' passed incorrect type!");
+
+	LASSERT_TYPE("def", a, 0, LVAL_QEXPR);
 
 	lval* syms = a->cell[0];
 
 	for (int i = 0; i < syms->count; i++) {
-		LASSERT(a, syms->cell[i]->type == LVAL_SYM, "Function 'def' cannot define non-symbol");
+		LASSERT(a, (syms->cell[i]->type == LVAL_SYM),
+			"Function 'def' cannot define non-symbol. "
+			"Got %s, Expected %s.",
+			ltype_name(syms->cell[i]->type), ltype_name(LVAL_SYM));
 	}
 
 	LASSERT(a, syms->count == a->count - 1, "Function 'def' cannot define incorrect number of values to symbols");
@@ -568,10 +572,21 @@ lval* builtin_def(lenv* e, lval* a) {
 	return lval_sexpr();
 }
 
-lval* builtin_exit(lenv* e, lval* a) {
-	printf("este exit");
+lval* builtin_print_all(lenv* e, lval* a) {
+	lval* x = lval_qexpr();
 
-	return a;
+	for (int i = 0; i < e->count; i++) {
+		printf("%s\n", e->syms[i]);
+	}
+
+	lval_del(a);
+	return x;
+}
+
+lval* builtin_exit(lenv* e, lval* a) {
+
+	exit(0);
+
 }
 
 void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {
@@ -605,6 +620,7 @@ void lenv_add_builtins(lenv* e) {
 
 	/* Variable Functions */
 	lenv_add_builtin(e, "def", builtin_def);
+	lenv_add_builtin(e, "print", builtin_print_all);
 
 	lenv_add_builtin(e, "exit", builtin_exit);
 }
