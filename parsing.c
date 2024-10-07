@@ -564,6 +564,10 @@ lval* builtin_def(lenv* e, lval* a) {
 	return lval_sexpr();
 }
 
+void builtin_exit(lenv* e, lval* a) {
+	printf("exit");
+}
+
 void lenv_add_builtin(lenv* e, char* name, lbuiltin func) {
 	lval* k = lval_sym(name);
 	lval* v = lval_fun(func);
@@ -595,6 +599,8 @@ void lenv_add_builtins(lenv* e) {
 
 	/* Variable Functions */
 	lenv_add_builtin(e, "def", builtin_def);
+
+	lenv_add_builtin(e, "exit", builtin_exit);
 }
 
 lval* lval_eval_sexpr(lenv* e ,lval* v) {
