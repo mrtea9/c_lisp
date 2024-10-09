@@ -505,6 +505,18 @@ int lval_eq(lval* x, lval* y) {
 	return 0;
 }
 
+lval* builtin_not(lenv* e, lval* a) {
+	LASSERT_NUM("!", a, 1);
+	LASSERT_TYPE("!", a, 0, LVAL_BOOL);
+
+	lval* x = lval_pop(a, 0);
+
+	x->bool = !(x->bool);
+	
+	lval_del(a);
+	return x;
+}
+
 lval* builtin_if(lenv* e, lval* a) {
 	LASSERT_NUM("if", a, 3);
 	LASSERT_TYPE("if", a, 0, LVAL_BOOL);
@@ -578,6 +590,18 @@ lval* builtin_cmp(lenv* e, lval* a, char* op) {
 		r = !lval_eq(a->cell[0], a->cell[1]);
 	}
 
+	if (strcmp(op, "!") == 0) {
+		r = !(a->cell[0]->bool);
+	}
+
+	if (strcmp(op, "&&") == 0) {
+		r = (a->cell[0]->bool) && (a->cell[1]->bool);
+	}
+
+	if (strcmp(op, "||") == 0) {
+		r = (a->cell[0]->bool) || (a->cell[1]->bool);
+	}
+
 	lval_del(a);
 	return lval_bool(r);
 }
@@ -597,6 +621,14 @@ lval* builtin_ord(lenv* e, lval* a, char* op) {
 
 	lval_del(a);
 	return lval_bool(r);
+}
+
+lval* builtin_and(lenv* e, lval* a) {
+	return builtin_cmp(e, a, "&&");
+}
+
+lval* builtin_or(lenv* e, lval* a) {
+	return builtin_cmp(e, a, "||");
 }
 
 lval* builtin_gt(lenv* e, lval* a) {
@@ -857,6 +889,9 @@ void lenv_add_builtins(lenv* e) {
 	lenv_add_builtin(e, "<", builtin_lt);
 	lenv_add_builtin(e, ">=", builtin_ge);
 	lenv_add_builtin(e, "<=", builtin_le);
+	lenv_add_builtin(e, "!", builtin_not);
+	lenv_add_builtin(e, "and", builtin_and);
+	lenv_add_builtin(e, "or", builtin_or);
 }
 
 lval* lval_call(lenv* e, lval* f, lval* a) {
