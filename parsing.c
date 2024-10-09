@@ -38,6 +38,7 @@ typedef struct lenv lenv;
 enum {
 	LVAL_ERR,
 	LVAL_NUM,
+	LVAL_BOOL,
 	LVAL_SYM,
 	LVAL_FUN,
 	LVAL_SEXPR,
@@ -52,6 +53,7 @@ typedef struct lval {
 	double num;
 	char* err;
 	char* sym;
+	int bool;
 
 	lbuiltin builtin;
 	char* fun_name;
@@ -80,6 +82,7 @@ char* ltype_name(int t) {
 	switch (t) {
 		case LVAL_FUN: return "Function";
 		case LVAL_NUM: return "Number";
+		case LVAL_BOOL: return "Boolean";
 		case LVAL_ERR: return "Error";
 		case LVAL_SYM: return "Symbol";
 		case LVAL_SEXPR: return "S-Expression";
@@ -172,6 +175,13 @@ lval* lval_num(double x) {
 	return v;
 }
 
+lval* lval_bool(int x) {
+	lval* v = malloc(sizeof(lval));
+	v->type = LVAL_BOOL;
+	v->bool = x;
+	return v;
+}
+
 lval* lval_err(char* fmt, ...) {
 	lval* v = malloc(sizeof(lval));
 	v->type = LVAL_ERR;
@@ -227,6 +237,7 @@ void lval_del(lval* v) {
 	
 	switch (v->type) {
 		case LVAL_NUM: 
+		case LVAL_BOOL:
 			break;
 
 		case LVAL_ERR: 
@@ -380,6 +391,8 @@ lval* lval_copy(lval* v) {
 	case LVAL_NUM:
 		x->num = v->num;
 		break;
+	case LVAL_BOOL:
+		x->bool = v->bool;
 
 	case LVAL_ERR:
 		x->err = malloc(strlen(v->err) + 1);
@@ -423,6 +436,9 @@ void lval_print(lval* v) {
 		case LVAL_NUM:
 			printf("%.2f", v->num);
 			break;
+		case LVAL_BOOL:
+			printf("%s", v->bool ? "true" : "false");
+			break;
 		case LVAL_ERR:
 			printf("Error: %s", v->err);
 			break;
@@ -462,6 +478,7 @@ int lval_eq(lval* x, lval* y) {
 
 	switch (x->type) {
 		case LVAL_NUM: return (x->num == y->num);
+		case LVAL_BOOL: return (x->bool == y->bool);
 
 
 		case LVAL_ERR: return (strcmp(x->err, y->err) == 0);
@@ -490,7 +507,7 @@ int lval_eq(lval* x, lval* y) {
 
 lval* builtin_if(lenv* e, lval* a) {
 	LASSERT_NUM("if", a, 3);
-	LASSERT_TYPE("if", a, 0, LVAL_NUM);
+	LASSERT_TYPE("if", a, 0, LVAL_BOOL);
 	LASSERT_TYPE("if", a, 1, LVAL_QEXPR);
 	LASSERT_TYPE("if", a, 2, LVAL_QEXPR);
 
@@ -498,7 +515,7 @@ lval* builtin_if(lenv* e, lval* a) {
 	a->cell[1]->type = LVAL_SEXPR;
 	a->cell[2]->type = LVAL_SEXPR;
 
-	if (a->cell[0]->num) {
+	if (a->cell[0]->bool) {
 		x = lval_eval(e, lval_pop(a, 1));
 	}
 	else {
@@ -562,7 +579,7 @@ lval* builtin_cmp(lenv* e, lval* a, char* op) {
 	}
 
 	lval_del(a);
-	return lval_num(r);
+	return lval_bool(r);
 }
 
 lval* builtin_ord(lenv* e, lval* a, char* op) {
@@ -579,7 +596,7 @@ lval* builtin_ord(lenv* e, lval* a, char* op) {
 	if (strcmp(op, "<=") == 0) r = (a->cell[0]->num <= a->cell[1]->num);
 
 	lval_del(a);
-	return lval_num(r);
+	return lval_bool(r);
 }
 
 lval* builtin_gt(lenv* e, lval* a) {
@@ -964,9 +981,15 @@ lval* lval_read_num(mpc_ast_t* t) {
 	return errno != ERANGE ? lval_num(x) : lval_err("invalid number");
 }
 
+lval* lval_read_bool(mpc_ast_t* t) {
+	if (strcmp(t->contents, "true") == 0) return lval_bool(1);
+	return lval_bool(0);
+}
+
 lval* lval_read(mpc_ast_t* t) {
 
 	if (strstr(t->tag, "number")) return lval_read_num(t);
+	if (strstr(t->tag, "boolean")) return lval_read_bool(t);
 	if (strstr(t->tag, "symbol")) return lval_sym(t->contents);
 
 	lval* x = NULL;
@@ -991,6 +1014,7 @@ int main(int argc, char** argv) {
 	/* Create some Parsers */
 	mpc_parser_t* Number = mpc_new("number");
 	mpc_parser_t* Symbol = mpc_new("symbol");
+	mpc_parser_t* Boolean = mpc_new("boolean");
 	mpc_parser_t* Sexpr  = mpc_new("sexpr");
 	mpc_parser_t* Qexpr  = mpc_new("qexpr");
 	mpc_parser_t* Expr   = mpc_new("expr");
@@ -1001,12 +1025,13 @@ int main(int argc, char** argv) {
 		"                                                                          \
 			number   : /-?[0-9]+/ ;                                                \
 			symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%]+/ ;                         \
+            boolean  : \"true\" | \"false\" ;                                      \
             sexpr    : '(' <expr>* ')' ;                                           \
             qexpr    : '{' <expr>* '}' ;                                           \
-			expr     :  <number> | <symbol> | <sexpr> | <qexpr> ;                  \
+			expr     :  <number> | <boolean> | <symbol> | <sexpr> | <qexpr> ;      \
 			tea      :  /^/ <expr>* /$/ ;                                          \
 		",
-		Number, Symbol, Sexpr, Qexpr, Expr, Tea);
+		Number, Symbol, Boolean, Sexpr, Qexpr, Expr, Tea);
 
 
 	/* Print Version and Exit Information */
@@ -1049,7 +1074,7 @@ int main(int argc, char** argv) {
 
 	lenv_del(e);
 
-	mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Tea);
+	mpc_cleanup(6, Number, Symbol, Boolean, Sexpr, Qexpr, Expr, Tea);
 
 	return 0;
 }
