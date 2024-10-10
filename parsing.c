@@ -30,16 +30,6 @@ void add_history(char* unused) {}
 #include <editline/history.h>
 #endif
 
-mpc_parser_t* Number;
-mpc_parser_t* Symbol;
-mpc_parser_t* Boolean;
-mpc_parser_t* Comment;
-mpc_parser_t* Sexpr;
-mpc_parser_t* Qexpr;
-mpc_parser_t* Expr;
-mpc_parser_t* Tea;
-
-
 struct lval;
 struct lenv;
 typedef struct lval lval;
@@ -87,20 +77,20 @@ struct lenv {
 
 void lval_print(lval* v);
 void lenv_del(lenv* e);
-lval* lval_eval(lenv* e ,lval* v);
+lval* lval_eval(lenv* e, lval* v);
 lval* lval_copy(lval* v);
 
 char* ltype_name(int t) {
 	switch (t) {
-		case LVAL_FUN: return "Function";
-		case LVAL_NUM: return "Number";
-		case LVAL_BOOL: return "Boolean";
-		case LVAL_ERR: return "Error";
-		case LVAL_SYM: return "Symbol";
-		case LVAL_STR: return "String";
-		case LVAL_SEXPR: return "S-Expression";
-		case LVAL_QEXPR: return "Q-Expression";
-		default: return "Unknown";
+	case LVAL_FUN: return "Function";
+	case LVAL_NUM: return "Number";
+	case LVAL_BOOL: return "Boolean";
+	case LVAL_ERR: return "Error";
+	case LVAL_SYM: return "Symbol";
+	case LVAL_STR: return "String";
+	case LVAL_SEXPR: return "S-Expression";
+	case LVAL_QEXPR: return "Q-Expression";
+	default: return "Unknown";
 	}
 }
 
@@ -255,39 +245,39 @@ lval* lval_qexpr(void) {
 }
 
 void lval_del(lval* v) {
-	
+
 	switch (v->type) {
-		case LVAL_NUM: 
-		case LVAL_BOOL:
-			break;
+	case LVAL_NUM:
+	case LVAL_BOOL:
+		break;
 
-		case LVAL_ERR: 
-			free(v->err);
-			break;
-		case LVAL_SYM:
-			free(v->sym);
-			break;
-		case LVAL_STR:
-			free(v->str);
-			break;
+	case LVAL_ERR:
+		free(v->err);
+		break;
+	case LVAL_SYM:
+		free(v->sym);
+		break;
+	case LVAL_STR:
+		free(v->str);
+		break;
 
-		case LVAL_FUN:
-			if (!v->builtin) {
-				lenv_del(v->env);
-				lval_del(v->formals);
-				lval_del(v->body);
-			}
-			break;
-
-		case LVAL_QEXPR:
-		case LVAL_SEXPR: {
-			for (int i = 0; i < v->count; i++) {
-				lval_del(v->cell[i]);
-			}
-
-			free(v->cell);
-			break;
+	case LVAL_FUN:
+		if (!v->builtin) {
+			lenv_del(v->env);
+			lval_del(v->formals);
+			lval_del(v->body);
 		}
+		break;
+
+	case LVAL_QEXPR:
+	case LVAL_SEXPR: {
+		for (int i = 0; i < v->count; i++) {
+			lval_del(v->cell[i]);
+		}
+
+		free(v->cell);
+		break;
+	}
 	}
 
 	free(v);
@@ -472,40 +462,40 @@ void lval_print_str(lval* v) {
 void lval_print(lval* v) {
 
 	switch (v->type) {
-		case LVAL_NUM:
-			printf("%.2f", v->num);
-			break;
-		case LVAL_BOOL:
-			printf("%s", v->bool ? "true" : "false");
-			break;
-		case LVAL_ERR:
-			printf("Error: %s", v->err);
-			break;
-		case LVAL_SYM:
-			printf("%s", v->sym);
-			break;
-		case LVAL_STR:
-			lval_print_str(v);
-			break;
-		case LVAL_FUN:
-			if (v->builtin) {
-				printf("<function> %s", v->fun_name);
-			}
-			else {
-				printf("<function> %s ", v->fun_name);
-				printf("(\\ "); 
-				lval_print(v->formals);
-				putchar(' '); 
-				lval_print(v->body); 
-				putchar(')');
-			}
-			break;
-		case LVAL_SEXPR:
-			lval_expr_print(v, '(', ')');
-			break;
-		case LVAL_QEXPR:
-			lval_expr_print(v, '{', '}');
-			break;
+	case LVAL_NUM:
+		printf("%.2f", v->num);
+		break;
+	case LVAL_BOOL:
+		printf("%s", v->bool ? "true" : "false");
+		break;
+	case LVAL_ERR:
+		printf("Error: %s", v->err);
+		break;
+	case LVAL_SYM:
+		printf("%s", v->sym);
+		break;
+	case LVAL_STR:
+		lval_print_str(v);
+		break;
+	case LVAL_FUN:
+		if (v->builtin) {
+			printf("<function> %s", v->fun_name);
+		}
+		else {
+			printf("<function> %s ", v->fun_name);
+			printf("(\\ ");
+			lval_print(v->formals);
+			putchar(' ');
+			lval_print(v->body);
+			putchar(')');
+		}
+		break;
+	case LVAL_SEXPR:
+		lval_expr_print(v, '(', ')');
+		break;
+	case LVAL_QEXPR:
+		lval_expr_print(v, '{', '}');
+		break;
 	}
 }
 
@@ -519,29 +509,29 @@ int lval_eq(lval* x, lval* y) {
 	if (x->type != y->type) return 0;
 
 	switch (x->type) {
-		case LVAL_NUM: return (x->num == y->num);
-		case LVAL_BOOL: return (x->bool == y->bool);
+	case LVAL_NUM: return (x->num == y->num);
+	case LVAL_BOOL: return (x->bool == y->bool);
 
 
-		case LVAL_ERR: return (strcmp(x->err, y->err) == 0);
-		case LVAL_SYM: return (strcmp(x->sym, y->sym) == 0);
-		case LVAL_STR: return (strcmp(x->str, y->str) == 0);
+	case LVAL_ERR: return (strcmp(x->err, y->err) == 0);
+	case LVAL_SYM: return (strcmp(x->sym, y->sym) == 0);
+	case LVAL_STR: return (strcmp(x->str, y->str) == 0);
 
-		case LVAL_FUN: 
-			if (x->builtin || y->builtin) {
-				return x->builtin == y->builtin;
-			}
-			else {
-				return lval_eq(x->formals, y->formals) && lval_eq(x->body, y->body);
-			}
+	case LVAL_FUN:
+		if (x->builtin || y->builtin) {
+			return x->builtin == y->builtin;
+		}
+		else {
+			return lval_eq(x->formals, y->formals) && lval_eq(x->body, y->body);
+		}
 
-		case LVAL_QEXPR:
-		case LVAL_SEXPR:
-			if (x->count != y->count) return 0;
-			for (int i = 0; i < x->count; i++) {
-				if (!lval_eq(x->cell[i], y->cell[i])) return 0;
-			}
-			return 1;
+	case LVAL_QEXPR:
+	case LVAL_SEXPR:
+		if (x->count != y->count) return 0;
+		for (int i = 0; i < x->count; i++) {
+			if (!lval_eq(x->cell[i], y->cell[i])) return 0;
+		}
+		return 1;
 		break;
 	}
 
@@ -555,7 +545,7 @@ lval* builtin_not(lenv* e, lval* a) {
 	lval* x = lval_pop(a, 0);
 
 	x->bool = !(x->bool);
-	
+
 	lval_del(a);
 	return x;
 }
@@ -698,7 +688,7 @@ lval* builtin_ne(lenv* e, lval* a) {
 	return builtin_cmp(e, a, "!=");
 }
 
-lval* builtin_len(lenv* e ,lval* a) {
+lval* builtin_len(lenv* e, lval* a) {
 	LASSERT_NUM("len", a, 1);
 	LASSERT_TYPE("len", a, 0, LVAL_QEXPR);
 
@@ -714,7 +704,7 @@ lval* builtin_head(lenv* e, lval* a) {
 	LASSERT_TYPE("head", a, 0, LVAL_QEXPR);
 	LASSERT_NOT_EMPTY("head", a, 0)
 
-	lval* v = lval_take(a, 0);
+		lval* v = lval_take(a, 0);
 
 	while (v->count > 1) lval_del(lval_pop(v, 1));
 	return v;
@@ -726,7 +716,7 @@ lval* builtin_tail(lenv* e, lval* a) {
 	LASSERT_TYPE("tail", a, 0, LVAL_QEXPR);
 	LASSERT_NOT_EMPTY("tail", a, 0)
 
-	lval* v = lval_take(a, 0);
+		lval* v = lval_take(a, 0);
 	lval_del(lval_pop(v, 0));
 
 	return v;
@@ -768,7 +758,7 @@ lval* builtin_init(lenv* e, lval* a) {
 	LASSERT_TYPE("init", a, 0, LVAL_QEXPR);
 	LASSERT_NOT_EMPTY("init", a, 0)
 
-	lval* v = lval_take(a, 0);
+		lval* v = lval_take(a, 0);
 	lval_del(lval_pop(v, v->count - 1));
 
 	return v;
@@ -1004,7 +994,7 @@ lval* lval_call(lenv* e, lval* f, lval* a) {
 	}
 }
 
-lval* lval_eval_sexpr(lenv* e ,lval* v) {
+lval* lval_eval_sexpr(lenv* e, lval* v) {
 
 	for (int i = 0; i < v->count; i++) {
 		v->cell[i] = lval_eval(e, v->cell[i]);
@@ -1034,7 +1024,7 @@ lval* lval_eval_sexpr(lenv* e ,lval* v) {
 lval* lval_eval(lenv* e, lval* v) {
 
 	if (v->type == LVAL_SYM) {
-		
+
 		if (strcmp(v->sym, "exit") == 0) exit(0);
 
 		if (strcmp(v->sym, "print") == 0) {
@@ -1097,8 +1087,6 @@ lval* lval_read(mpc_ast_t* t) {
 		if (strcmp(t->children[i]->contents, "}") == 0) continue;
 		if (strcmp(t->children[i]->tag, "regex") == 0) continue;
 
-		if (strstr(t->children[i]->tag, "comment") == 0) continue;
-
 		x = lval_add(x, lval_read(t->children[i]));
 	}
 
@@ -1111,11 +1099,10 @@ int main(int argc, char** argv) {
 	mpc_parser_t* Symbol = mpc_new("symbol");
 	mpc_parser_t* Boolean = mpc_new("boolean");
 	mpc_parser_t* String = mpc_new("string");
-	mpc_parser_t* Comment = mpc_new("comment");
-	mpc_parser_t* Sexpr  = mpc_new("sexpr");
-	mpc_parser_t* Qexpr  = mpc_new("qexpr");
-	mpc_parser_t* Expr   = mpc_new("expr");
-	mpc_parser_t* Tea    = mpc_new("tea");
+	mpc_parser_t* Sexpr = mpc_new("sexpr");
+	mpc_parser_t* Qexpr = mpc_new("qexpr");
+	mpc_parser_t* Expr = mpc_new("expr");
+	mpc_parser_t* Tea = mpc_new("tea");
 
 	/* Define them with the following Language */
 	mpca_lang(MPCA_LANG_DEFAULT,
@@ -1124,14 +1111,13 @@ int main(int argc, char** argv) {
 			symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%]+/ ;                         \
             boolean  : \"true\" | \"false\" ;                                      \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                      \
-		    comment  : /;[^\\r\\n]*/ ;                                             \
             sexpr    : '(' <expr>* ')' ;                                           \
             qexpr    : '{' <expr>* '}' ;                                           \
-			expr     :  <number> | <boolean> | <symbol> | <sexpr> | <qexpr>        \
-		             |  <string> | <comment> ;                                     \
+			expr     :  <number> | <boolean> | <symbol> | <sexpr> | <qexpr> |      \
+		                <string> ;                                                 \
 			tea      :  /^/ <expr>* /$/ ;                                          \
 		",
-		Number, Symbol, Boolean, String, Comment, Sexpr, Qexpr, Expr, Tea);
+		Number, Symbol, Boolean, String, Sexpr, Qexpr, Expr, Tea);
 
 
 	/* Print Version and Exit Information */
@@ -1174,8 +1160,7 @@ int main(int argc, char** argv) {
 
 	lenv_del(e);
 
-	mpc_cleanup(9, Number, Symbol, Boolean, String, Comment, Sexpr, Qexpr, Expr, Tea);
+	mpc_cleanup(6, Number, Symbol, Boolean, String, Sexpr, Qexpr, Expr, Tea);
 
 	return 0;
 }
-
