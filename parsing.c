@@ -1086,6 +1086,7 @@ lval* lval_read(mpc_ast_t* t) {
 		if (strcmp(t->children[i]->contents, "{") == 0) continue;
 		if (strcmp(t->children[i]->contents, "}") == 0) continue;
 		if (strcmp(t->children[i]->tag, "regex") == 0) continue;
+		if (strstr(t->children[i]->tag, "comment")) continue;
 
 		x = lval_add(x, lval_read(t->children[i]));
 	}
@@ -1099,6 +1100,7 @@ int main(int argc, char** argv) {
 	mpc_parser_t* Symbol = mpc_new("symbol");
 	mpc_parser_t* Boolean = mpc_new("boolean");
 	mpc_parser_t* String = mpc_new("string");
+	mpc_parser_t* Comment = mpc_new("comment");
 	mpc_parser_t* Sexpr = mpc_new("sexpr");
 	mpc_parser_t* Qexpr = mpc_new("qexpr");
 	mpc_parser_t* Expr = mpc_new("expr");
@@ -1111,13 +1113,14 @@ int main(int argc, char** argv) {
 			symbol   : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&%]+/ ;                         \
             boolean  : \"true\" | \"false\" ;                                      \
             string   : /\"(\\\\.|[^\"])*\"/ ;                                      \
+			comment  : /;[^\\r\\n]*/ ;  \
             sexpr    : '(' <expr>* ')' ;                                           \
             qexpr    : '{' <expr>* '}' ;                                           \
 			expr     :  <number> | <boolean> | <symbol> | <sexpr> | <qexpr> |      \
 		                <string> ;                                                 \
 			tea      :  /^/ <expr>* /$/ ;                                          \
 		",
-		Number, Symbol, Boolean, String, Sexpr, Qexpr, Expr, Tea);
+		Number, Symbol, Boolean, String, Comment, Sexpr, Qexpr, Expr, Tea);
 
 
 	/* Print Version and Exit Information */
@@ -1160,7 +1163,7 @@ int main(int argc, char** argv) {
 
 	lenv_del(e);
 
-	mpc_cleanup(6, Number, Symbol, Boolean, String, Sexpr, Qexpr, Expr, Tea);
+	mpc_cleanup(9, Number, Symbol, Boolean, String, Comment, Sexpr, Qexpr, Expr, Tea);
 
 	return 0;
 }
